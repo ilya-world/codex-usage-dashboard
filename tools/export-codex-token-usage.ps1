@@ -1417,6 +1417,7 @@ $referenceRateLimitAt = if ($latestTokenEventAt) { $latestTokenEventAt } elseif 
 $rateLimitCandidates = @($rateLimitEvents.ToArray() | Where-Object {
   $_.RateLimits -and
   $_.RateLimits.weekly -and
+  (-not $_.RateLimits.limitId -or [string]$_.RateLimits.limitId -eq "codex") -and
   $null -ne $_.RateLimits.weekly.usedPercent
 })
 $activeRateLimitCandidates = @($rateLimitCandidates | Where-Object {
@@ -1549,8 +1550,10 @@ if ($weeklyLimitEstimateRateLimits -and $weeklyLimitEstimateRateLimits.weekly -a
 }
 
 $weeklyLimitWindows = New-Object "System.Collections.Generic.List[object]"
-$rateLimitWindowBestCandidates = @{}
+$rateLimitWindowCandidateGroups = @{}
 
+# A manual reset starts a new seven-day window before the reported old one ends.
+# Segment confirmed starts and use only observations made before the next reset.
 foreach ($candidate in $rateLimitCandidates) {
   $usedPercent = Get-DoubleValue $candidate.RateLimits.weekly.usedPercent
   if ($null -eq $usedPercent -or $usedPercent -le 0) { continue }
@@ -1573,43 +1576,69 @@ foreach ($candidate in $rateLimitCandidates) {
   if (-not $windowStart -or -not $windowEnd -or -not $candidate.At) { continue }
   if ($candidate.At -lt $windowStart -or $candidate.At -gt $windowEnd) { continue }
 
-  $windowCandidate = [pscustomobject]@{
-    Key = "$(Convert-ToIsoUtc $windowStart)|$(Convert-ToIsoUtc $windowEnd)|$windowMinutes"
-    Start = $windowStart
-    End = $windowEnd
+  $windowKey = "$(Convert-ToIsoUtc $windowStart)|$(Convert-ToIsoUtc $windowEnd)|$windowMinutes"
+  $candidateGroup = $rateLimitWindowCandidateGroups[$windowKey]
+  if (-not $candidateGroup) {
+    $candidateGroup = [pscustomobject]@{
+      Key = $windowKey
+      Start = $windowStart
+      End = $windowEnd
+      WindowMinutes = $windowMinutes
+      Basis = $basis
+      Candidates = New-Object "System.Collections.Generic.List[object]"
+    }
+    $rateLimitWindowCandidateGroups[$windowKey] = $candidateGroup
+  }
+
+  $candidateGroup.Candidates.Add([pscustomobject]@{
     At = $candidate.At
     UsedPercent = $usedPercent
-    WindowMinutes = $windowMinutes
-    Basis = $basis
-  }
-
-  $existingCandidate = $rateLimitWindowBestCandidates[$windowCandidate.Key]
-  if (
-    -not $existingCandidate -or
-    $windowCandidate.UsedPercent -gt $existingCandidate.UsedPercent -or
-    ($windowCandidate.UsedPercent -eq $existingCandidate.UsedPercent -and $windowCandidate.At -gt $existingCandidate.At)
-  ) {
-    $rateLimitWindowBestCandidates[$windowCandidate.Key] = $windowCandidate
-  }
+  }) | Out-Null
 }
 
-foreach ($basisCandidate in ($rateLimitWindowBestCandidates.Values | Sort-Object Start)) {
-  $windowTokens = Get-TokenEventWindowTotal $tokenEventPrefixIndex $basisCandidate.Start $basisCandidate.At
+$allRateLimitWindowGroups = @($rateLimitWindowCandidateGroups.Values | Sort-Object Start)
+$latestRateLimitWindowGroup = @($allRateLimitWindowGroups | Select-Object -Last 1)
+$confirmedRateLimitWindowGroups = @(
+  $allRateLimitWindowGroups | Where-Object {
+    $_.Candidates.Count -ge 2 -or
+    ($latestRateLimitWindowGroup.Count -and $_.Key -eq $latestRateLimitWindowGroup[0].Key)
+  }
+)
+
+for ($groupIndex = 0; $groupIndex -lt $confirmedRateLimitWindowGroups.Count; $groupIndex += 1) {
+  $candidateGroup = $confirmedRateLimitWindowGroups[$groupIndex]
+  $effectiveWindowEnd = $candidateGroup.End
+  if ($groupIndex + 1 -lt $confirmedRateLimitWindowGroups.Count) {
+    $nextWindowStart = $confirmedRateLimitWindowGroups[$groupIndex + 1].Start
+    if ($nextWindowStart -gt $candidateGroup.Start -and $nextWindowStart -lt $effectiveWindowEnd) {
+      $effectiveWindowEnd = $nextWindowStart
+    }
+  }
+
+  $basisCandidate = @(
+    $candidateGroup.Candidates |
+      Where-Object { $_.At -ge $candidateGroup.Start -and $_.At -le $effectiveWindowEnd } |
+      Sort-Object @{Expression = "UsedPercent"; Descending = $true}, @{Expression = "At"; Descending = $true} |
+      Select-Object -First 1
+  )
+  if (-not $basisCandidate.Count) { continue }
+
+  $windowTokens = Get-TokenEventWindowTotal $tokenEventPrefixIndex $candidateGroup.Start $basisCandidate[0].At
 
   if ($windowTokens -le 0) { continue }
 
-  $estimatedTotalTokens = [int64][Math]::Round($windowTokens * 100 / $basisCandidate.UsedPercent)
+  $estimatedTotalTokens = [int64][Math]::Round($windowTokens * 100 / $basisCandidate[0].UsedPercent)
   if ($estimatedTotalTokens -le 0) { continue }
 
   $weeklyLimitWindows.Add([pscustomobject]@{
-    Start = $basisCandidate.Start
-    End = $basisCandidate.End
-    ObservedAt = $basisCandidate.At
-    UsedPercent = $basisCandidate.UsedPercent
+    Start = $candidateGroup.Start
+    End = $effectiveWindowEnd
+    ObservedAt = $basisCandidate[0].At
+    UsedPercent = $basisCandidate[0].UsedPercent
     EstimatedTotalTokens = $estimatedTotalTokens
     WindowTokenUsage = $windowTokens
-    WindowMinutes = $basisCandidate.WindowMinutes
-    Basis = $basisCandidate.Basis
+    WindowMinutes = $candidateGroup.WindowMinutes
+    Basis = "$($candidateGroup.Basis)_segmented"
   }) | Out-Null
 }
 
@@ -1617,28 +1646,7 @@ $weeklyDailyTokenBuckets = @{}
 $weeklyDailyPercentBuckets = @{}
 $weeklyHourlyTokenBuckets = @{}
 $weeklyHourlyPercentBuckets = @{}
-$weeklyLimitWindowRows = New-Object "System.Collections.Generic.List[object]"
-$rawWeeklyLimitWindowRows = @($weeklyLimitWindows.ToArray() | Sort-Object @{Expression = "ObservedAt"; Descending = $true}, @{Expression = "UsedPercent"; Descending = $true})
-foreach ($candidateWindow in $rawWeeklyLimitWindowRows) {
-  $isDuplicateWindow = $false
-  foreach ($selectedWindow in $weeklyLimitWindowRows) {
-    $overlapStart = if ($candidateWindow.Start -gt $selectedWindow.Start) { $candidateWindow.Start } else { $selectedWindow.Start }
-    $overlapEnd = if ($candidateWindow.End -lt $selectedWindow.End) { $candidateWindow.End } else { $selectedWindow.End }
-    $overlapMinutes = [Math]::Max(0, ($overlapEnd - $overlapStart).TotalMinutes)
-    $shorterWindowMinutes = [Math]::Max(1, [Math]::Min([double]$candidateWindow.WindowMinutes, [double]$selectedWindow.WindowMinutes))
-
-    if (($overlapMinutes / $shorterWindowMinutes) -ge 0.8) {
-      $isDuplicateWindow = $true
-      break
-    }
-  }
-
-  if (-not $isDuplicateWindow) {
-    $weeklyLimitWindowRows.Add($candidateWindow) | Out-Null
-  }
-}
-
-$weeklyLimitWindowRows = @($weeklyLimitWindowRows | Sort-Object Start)
+$weeklyLimitWindowRows = @($weeklyLimitWindows.ToArray() | Sort-Object Start)
 $latestKnownWeeklyLimitWindow = @($weeklyLimitWindowRows | Sort-Object ObservedAt | Select-Object -Last 1)
 $fallbackWeeklyLimitTotalTokens = if ($latestKnownWeeklyLimitWindow.Count) { Get-Int64Value $latestKnownWeeklyLimitWindow[0].EstimatedTotalTokens } else { [int64]0 }
 $currentRateLimitForFallback = if ($latestRateLimits) { $latestRateLimits } else { $weeklyLimitEstimateRateLimits }
