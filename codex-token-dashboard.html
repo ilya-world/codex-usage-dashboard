@@ -1,0 +1,2231 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Статистика токенов Codex</title>
+  <link rel="icon" href="data:,">
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f4f6f8;
+      --panel: #ffffff;
+      --panel-soft: #f8fafc;
+      --ink: #111827;
+      --muted: #667085;
+      --line: #d9e0e8;
+      --line-strong: #c6ced8;
+      --accent: #167c6b;
+      --accent-soft: #e4f4ef;
+      --blue: #2f6fed;
+      --blue-soft: #e8f0ff;
+      --amber: #b97918;
+      --amber-soft: #fff4dc;
+      --rose: #bf4d62;
+      --rose-soft: #ffe9ee;
+      --violet: #6b5bd6;
+      --slate: #65758b;
+      --shadow: 0 16px 40px rgba(17, 24, 39, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: "Segoe UI", Arial, sans-serif;
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    .app {
+      width: 100%;
+      min-width: 0;
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr;
+    }
+
+    .topbar {
+      width: 100%;
+      min-width: 0;
+      max-width: 100%;
+      min-height: 76px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      padding: 14px 24px;
+      background: rgba(255, 255, 255, 0.96);
+      border-bottom: 1px solid var(--line);
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      backdrop-filter: blur(12px);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 21px;
+      font-weight: 700;
+      letter-spacing: 0;
+    }
+
+    .status {
+      margin-top: 3px;
+      min-height: 19px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 10px;
+      min-width: min(760px, 58vw);
+    }
+
+    .control,
+    .search,
+    .button {
+      height: 42px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      color: var(--ink);
+    }
+
+    .control {
+      min-width: 136px;
+      padding: 0 10px;
+    }
+
+    .search {
+      min-width: 240px;
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 12px;
+      background: var(--panel-soft);
+    }
+
+    .search svg,
+    .button svg {
+      width: 18px;
+      height: 18px;
+      flex: 0 0 auto;
+      stroke: currentColor;
+    }
+
+    .search input {
+      width: 100%;
+      min-width: 0;
+      border: 0;
+      outline: 0;
+      background: transparent;
+      color: var(--ink);
+    }
+
+    .button {
+      min-width: 42px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 0 12px;
+      cursor: pointer;
+    }
+
+    .button:hover,
+    .control:hover {
+      border-color: var(--line-strong);
+    }
+
+    .button.primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #ffffff;
+    }
+
+    .main {
+      width: min(1440px, 100%);
+      min-width: 0;
+      max-width: 100%;
+      margin: 0 auto;
+      padding: 22px 24px 32px;
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .metrics-disclosure {
+      margin-bottom: 16px;
+    }
+
+    .metrics-disclosure summary {
+      min-height: 46px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 0 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      color: var(--ink);
+      box-shadow: var(--shadow);
+      cursor: pointer;
+      list-style: none;
+    }
+
+    .metrics-disclosure summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .summary-title {
+      font-weight: 720;
+    }
+
+    .summary-hint {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .metrics-disclosure .summary-hint::before {
+      content: "Развернуть";
+    }
+
+    .metrics-disclosure[open] .summary-hint::before {
+      content: "Свернуть";
+    }
+
+    .metrics-disclosure .metrics {
+      margin-top: 12px;
+    }
+
+    .weekly-overview {
+      display: grid;
+      grid-template-columns: minmax(0, 1.65fr) minmax(360px, 0.95fr);
+      gap: 16px;
+      align-items: stretch;
+      margin-bottom: 16px;
+    }
+
+    .metric-card,
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+
+    .metric-card {
+      min-height: 118px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 14px;
+    }
+
+    .metric-label {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .metric-value {
+      margin-top: 12px;
+      font-size: 28px;
+      line-height: 1.05;
+      font-weight: 760;
+      letter-spacing: 0;
+      overflow-wrap: anywhere;
+    }
+
+    .metric-note {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      min-height: 18px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.65fr) minmax(360px, 0.95fr);
+      gap: 16px;
+      align-items: start;
+      min-width: 0;
+    }
+
+    .main-column {
+      display: grid;
+      gap: 16px;
+      min-width: 0;
+    }
+
+    .side-grid {
+      display: grid;
+      gap: 16px;
+      min-width: 0;
+    }
+
+    .panel {
+      overflow: hidden;
+      min-width: 0;
+    }
+
+    .panel-header {
+      min-height: 58px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 14px 16px 10px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .panel-title {
+      min-width: 0;
+    }
+
+    .panel-title h2 {
+      margin: 0;
+      font-size: 16px;
+      line-height: 1.25;
+      font-weight: 720;
+      letter-spacing: 0;
+    }
+
+    .panel-subtitle {
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 10px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: currentColor;
+    }
+
+    .chart {
+      min-height: 300px;
+      padding: 14px 16px 16px;
+    }
+
+    .chart svg {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    .axis-text {
+      fill: #667085;
+      font-size: 12px;
+    }
+
+    .bar-limit-label {
+      fill: var(--ink);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .grid-line {
+      stroke: #e7ecf2;
+      stroke-width: 1;
+    }
+
+    .burndown-plan {
+      fill: none;
+      stroke: #a9b4c2;
+      stroke-width: 2;
+      stroke-dasharray: 7 7;
+    }
+
+    .burndown-actual {
+      fill: none;
+      stroke: var(--accent);
+      stroke-width: 3;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .burndown-now-line {
+      stroke: #cbd5e1;
+      stroke-width: 1.5;
+      stroke-dasharray: 4 5;
+    }
+
+    .burndown-marker {
+      fill: var(--accent);
+      stroke: #ffffff;
+      stroke-width: 3;
+    }
+
+    .burndown-marker-plan {
+      fill: #ffffff;
+      stroke: #8f9bad;
+      stroke-width: 2.5;
+    }
+
+    .burndown-label {
+      fill: var(--ink);
+      font-size: 13px;
+      font-weight: 720;
+    }
+
+    .burndown-note {
+      fill: var(--muted);
+      font-size: 12px;
+    }
+
+    .bar-input {
+      fill: var(--blue);
+    }
+
+    .bar-output {
+      fill: var(--accent);
+    }
+
+    .bar-other {
+      fill: var(--slate);
+    }
+
+    .bar-muted {
+      fill: #d8e0ea;
+    }
+
+    .mix {
+      padding: 16px;
+    }
+
+    .stack {
+      height: 22px;
+      display: flex;
+      overflow: hidden;
+      border-radius: 6px;
+      background: var(--panel-soft);
+      border: 1px solid var(--line);
+    }
+
+    .stack-part {
+      min-width: 0;
+    }
+
+    .stack-input {
+      background: var(--blue);
+    }
+
+    .stack-output {
+      background: var(--accent);
+    }
+
+    .stack-secondary {
+      background: var(--amber);
+    }
+
+    .mix-list,
+    .rate-list,
+    .project-list {
+      display: grid;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .mix-row,
+    .rate-row,
+    .project-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .row-main {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: var(--ink);
+      font-weight: 600;
+    }
+
+    .row-value {
+      color: var(--ink);
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    .progress {
+      grid-column: 1 / -1;
+      height: 8px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: var(--panel-soft);
+      border: 1px solid var(--line);
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 0;
+      background: var(--accent);
+    }
+
+    .progress-fill.warn {
+      background: var(--amber);
+    }
+
+    .progress-fill.hot {
+      background: var(--rose);
+    }
+
+    .rate-value {
+      color: var(--accent);
+      font-size: 26px;
+      line-height: 1;
+      font-weight: 760;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    .rate-value.warn {
+      color: var(--amber);
+    }
+
+    .rate-value.hot {
+      color: var(--rose);
+    }
+
+    .rate-detail {
+      grid-column: 1 / -1;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    #limitsPanel {
+      min-height: 300px;
+    }
+
+    .weekly-limit-card {
+      min-height: 268px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 20px;
+    }
+
+    .limit-hero {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 18px;
+    }
+
+    .limit-kicker,
+    .limit-reset-label,
+    .limit-fact span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .limit-remaining {
+      margin-top: 5px;
+      color: var(--accent);
+      font-size: 52px;
+      line-height: 1;
+      font-weight: 780;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .limit-remaining.warn {
+      color: var(--amber);
+    }
+
+    .limit-remaining.hot {
+      color: var(--rose);
+    }
+
+    .limit-reset {
+      padding-top: 4px;
+      text-align: right;
+    }
+
+    .limit-reset strong {
+      display: block;
+      margin-top: 5px;
+      color: var(--ink);
+      font-size: 20px;
+      font-weight: 720;
+      white-space: nowrap;
+    }
+
+    .battery-gauge {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 9px;
+      gap: 4px;
+      align-items: center;
+    }
+
+    .battery-shell {
+      position: relative;
+      height: 70px;
+      overflow: hidden;
+      border: 3px solid #344054;
+      border-radius: 7px;
+      background: var(--panel-soft);
+      box-shadow: inset 0 0 0 5px var(--panel);
+    }
+
+    .battery-cap {
+      width: 9px;
+      height: 30px;
+      border-radius: 0 4px 4px 0;
+      background: #344054;
+    }
+
+    .battery-fill {
+      position: absolute;
+      inset: 5px auto 5px 5px;
+      max-width: calc(100% - 10px);
+      border-radius: 3px;
+      background: var(--accent);
+    }
+
+    .battery-fill.warn {
+      background: var(--amber);
+    }
+
+    .battery-fill.hot {
+      background: var(--rose);
+    }
+
+    .battery-segments {
+      position: absolute;
+      inset: 5px;
+      display: grid;
+      grid-template-columns: repeat(10, minmax(0, 1fr));
+      pointer-events: none;
+    }
+
+    .battery-segments span:not(:last-child) {
+      border-right: 3px solid rgba(255, 255, 255, 0.72);
+    }
+
+    .limit-facts {
+      display: grid;
+      grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+      gap: 14px;
+      padding-top: 16px;
+      border-top: 1px solid var(--line);
+    }
+
+    .limit-fact {
+      min-width: 0;
+    }
+
+    .limit-fact strong {
+      display: block;
+      margin-top: 4px;
+      color: var(--ink);
+      font-size: 15px;
+      font-weight: 700;
+      line-height: 1.35;
+    }
+
+    .table-panel {
+      margin-top: 16px;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      max-width: 100%;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 1040px;
+    }
+
+    th,
+    td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: middle;
+    }
+
+    th {
+      background: var(--panel);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    th button {
+      width: 100%;
+      min-height: 28px;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      color: inherit;
+      cursor: pointer;
+      text-align: inherit;
+      text-transform: inherit;
+      font-weight: inherit;
+    }
+
+    tbody tr:hover {
+      background: #fafbfd;
+    }
+
+    .thread {
+      max-width: 360px;
+      min-width: 260px;
+    }
+
+    .thread-title {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-weight: 650;
+    }
+
+    .thread-meta {
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 12px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .number {
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+      text-align: right;
+    }
+
+    td.number,
+    th.number {
+      text-align: right;
+    }
+
+    .pill {
+      display: inline-flex;
+      max-width: 220px;
+      min-height: 24px;
+      align-items: center;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: var(--blue-soft);
+      color: #194a9d;
+      font-size: 12px;
+      font-weight: 650;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .empty {
+      padding: 24px 16px;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    .footer-note {
+      margin-top: 14px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .filter-strip {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      margin: -4px 0 16px;
+    }
+
+    .filter-chip,
+    .clear-filter {
+      min-height: 32px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: var(--panel);
+      color: var(--ink);
+      padding: 4px 10px;
+      font-size: 13px;
+    }
+
+    .filter-chip {
+      background: var(--accent-soft);
+      border-color: #b9dfd6;
+      color: var(--accent);
+      font-weight: 650;
+    }
+
+    .clear-filter {
+      cursor: pointer;
+    }
+
+    .bar-hit {
+      fill: transparent;
+      cursor: pointer;
+    }
+
+    .bar-selected {
+      fill: none;
+      stroke: var(--rose);
+      stroke-width: 3;
+      pointer-events: none;
+    }
+
+    .project-button {
+      width: 100%;
+      border: 0;
+      background: transparent;
+      color: inherit;
+      padding: 0;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .project-button.is-active .progress {
+      border-color: #d892a0;
+      background: var(--rose-soft);
+    }
+
+    .project-button.is-active .progress-fill {
+      background: var(--rose);
+    }
+
+    @media (max-width: 1180px) {
+      .topbar {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .toolbar {
+        width: 100%;
+        min-width: 0;
+      }
+
+      .metrics {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .weekly-overview,
+      .grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 760px) {
+      .topbar {
+        padding: 14px;
+      }
+
+      .toolbar {
+        flex-wrap: wrap;
+        justify-content: stretch;
+      }
+
+      .search,
+      .control,
+      .button {
+        min-width: 0;
+        max-width: 100%;
+        flex: 1 1 180px;
+      }
+
+      .main {
+        padding: 14px;
+      }
+
+      .metrics {
+        grid-template-columns: 1fr;
+      }
+
+      .metrics-disclosure summary {
+        align-items: flex-start;
+        flex-direction: column;
+        justify-content: center;
+        padding: 10px 14px;
+      }
+
+      .metric-card {
+        min-height: 100px;
+      }
+
+      .panel-header {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .legend {
+        justify-content: flex-start;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div>
+        <h1>Статистика токенов Codex</h1>
+        <div class="status" id="status">Загрузка данных</div>
+      </div>
+      <div class="toolbar" aria-label="Фильтры">
+        <select class="control" id="rangeSelect" title="Период">
+          <option value="7">7 дней</option>
+          <option value="30" selected>30 дней</option>
+          <option value="90">90 дней</option>
+          <option value="all">Весь период</option>
+        </select>
+        <select class="control" id="metricSelect" title="Метрика">
+          <option value="totalTokens" selected>Все токены</option>
+          <option value="inputTokens">Входные</option>
+          <option value="outputTokens">Выходные</option>
+          <option value="cachedInputTokens">Кэш</option>
+          <option value="reasoningOutputTokens">Reasoning</option>
+          <option value="otherTokens">Прочее</option>
+        </select>
+        <label class="search" title="Поиск">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="m21 21-4.35-4.35M10.8 18.1a7.3 7.3 0 1 1 0-14.6 7.3 7.3 0 0 1 0 14.6Z" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          <input id="searchInput" type="search" placeholder="Тред или папка">
+        </label>
+        <button class="button" id="reloadButton" title="Обновить страницу" aria-label="Обновить страницу">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M20 11a8.1 8.1 0 0 0-14.2-4.8L4 8m0 0V3m0 5h5M4 13a8.1 8.1 0 0 0 14.2 4.8L20 16m0 0v5m0-5h-5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <button class="button primary" id="csvButton">CSV</button>
+      </div>
+    </header>
+
+    <main class="main">
+      <details class="metrics-disclosure">
+        <summary>
+          <span class="summary-title">Ключевые метрики</span>
+          <span class="summary-hint" aria-hidden="true"></span>
+        </summary>
+        <section class="metrics" id="metrics"></section>
+      </details>
+
+      <section class="filter-strip" id="activeFilters" hidden></section>
+
+      <section class="weekly-overview">
+        <section class="panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <h2>Недельный burndown</h2>
+              <div class="panel-subtitle" id="burndownSubtitle"></div>
+            </div>
+            <div class="legend">
+              <span class="legend-item"><span class="dot" style="color: var(--accent)"></span>Факт</span>
+              <span class="legend-item"><span class="dot" style="color: #a9b4c2"></span>Равномерно</span>
+            </div>
+          </div>
+          <div class="chart" id="burndownChart"></div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <h2>Недельный лимит</h2>
+              <div class="panel-subtitle" id="limitsSubtitle"></div>
+            </div>
+          </div>
+          <div class="mix" id="limitsPanel"></div>
+        </section>
+      </section>
+
+      <div class="grid">
+        <div class="main-column">
+          <section class="panel">
+            <div class="panel-header">
+              <div class="panel-title">
+                <h2>Динамика по дням</h2>
+                <div class="panel-subtitle" id="chartSubtitle"></div>
+              </div>
+              <div class="legend">
+                <span class="legend-item"><span class="dot" style="color: var(--blue)"></span>Вход</span>
+                <span class="legend-item"><span class="dot" style="color: var(--accent)"></span>Выход</span>
+                <span class="legend-item"><span class="dot" style="color: var(--slate)"></span>Прочее</span>
+              </div>
+            </div>
+            <div class="chart" id="dailyChart"></div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-header">
+              <div class="panel-title">
+                <h2>По часам</h2>
+                <div class="panel-subtitle" id="hourlySubtitle"></div>
+              </div>
+              <div class="legend">
+                <span class="legend-item"><span class="dot" style="color: var(--blue)"></span>Вход</span>
+                <span class="legend-item"><span class="dot" style="color: var(--accent)"></span>Выход</span>
+                <span class="legend-item"><span class="dot" style="color: var(--slate)"></span>Прочее</span>
+              </div>
+            </div>
+            <div class="chart" id="hourlyChart"></div>
+          </section>
+        </div>
+
+        <div class="side-grid">
+          <section class="panel">
+            <div class="panel-header">
+              <div class="panel-title">
+                <h2>Состав токенов</h2>
+                <div class="panel-subtitle" id="mixSubtitle"></div>
+              </div>
+            </div>
+            <div class="mix" id="mixPanel"></div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-header">
+              <div class="panel-title">
+                <h2>Папки</h2>
+                <div class="panel-subtitle" id="projectsSubtitle"></div>
+              </div>
+            </div>
+            <div class="mix" id="projectsPanel"></div>
+          </section>
+        </div>
+      </div>
+
+      <section class="panel table-panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <h2>Треды</h2>
+            <div class="panel-subtitle" id="tableSubtitle"></div>
+          </div>
+          <div class="legend" id="tableLegend"></div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th><button data-sort="title">Тред</button></th>
+                <th><button data-sort="project">Папка</button></th>
+                <th><button data-sort="end">Дата</button></th>
+                <th class="number"><button data-sort="turns">Ходы</button></th>
+                <th class="number"><button data-sort="totalTokens">Всего</button></th>
+                <th class="number"><button data-sort="inputTokens">Вход</button></th>
+                <th class="number"><button data-sort="outputTokens">Выход</button></th>
+                <th class="number"><button data-sort="cachedInputTokens">Кэш</button></th>
+                <th class="number"><button data-sort="reasoningOutputTokens">Reasoning</button></th>
+                <th class="number"><button data-sort="otherTokens">Прочее</button></th>
+              </tr>
+            </thead>
+            <tbody id="sessionsBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <div class="footer-note" id="footerNote"></div>
+    </main>
+  </div>
+
+  <script src="data/codex-token-usage-data.js"></script>
+  <script>
+    (() => {
+      const emptySnapshot = {
+        generatedAt: null,
+        localTimeZone: "",
+        summary: {
+          filesScanned: 0,
+          sessions: 0,
+          sessionsWithTokens: 0,
+          tokenEvents: 0,
+          inputTokens: 0,
+          cachedInputTokens: 0,
+          outputTokens: 0,
+          reasoningOutputTokens: 0,
+          otherTokens: 0,
+          totalTokens: 0,
+          latestTokenEventAt: null,
+          latestRateLimits: null,
+          weeklyLimitEstimate: null,
+          weeklyBurndown: null
+        },
+        daily: [],
+        hourly: [],
+        sessionHourly: [],
+        sessionDaily: [],
+        sessions: []
+      };
+
+      const snapshot = window.CODEX_TOKEN_USAGE_SNAPSHOT || emptySnapshot;
+      const state = {
+        range: "30",
+        metric: "totalTokens",
+        query: "",
+        selectedDate: null,
+        selectedHour: null,
+        selectedProject: null,
+        sort: "totalTokens",
+        sortDir: "desc"
+      };
+
+      const els = {
+        status: document.getElementById("status"),
+        range: document.getElementById("rangeSelect"),
+        metric: document.getElementById("metricSelect"),
+        search: document.getElementById("searchInput"),
+        reload: document.getElementById("reloadButton"),
+        csv: document.getElementById("csvButton"),
+        metrics: document.getElementById("metrics"),
+        activeFilters: document.getElementById("activeFilters"),
+        burndownSubtitle: document.getElementById("burndownSubtitle"),
+        burndownChart: document.getElementById("burndownChart"),
+        chartSubtitle: document.getElementById("chartSubtitle"),
+        dailyChart: document.getElementById("dailyChart"),
+        hourlySubtitle: document.getElementById("hourlySubtitle"),
+        hourlyChart: document.getElementById("hourlyChart"),
+        mixSubtitle: document.getElementById("mixSubtitle"),
+        mixPanel: document.getElementById("mixPanel"),
+        limitsSubtitle: document.getElementById("limitsSubtitle"),
+        limitsPanel: document.getElementById("limitsPanel"),
+        projectsSubtitle: document.getElementById("projectsSubtitle"),
+        projectsPanel: document.getElementById("projectsPanel"),
+        tableSubtitle: document.getElementById("tableSubtitle"),
+        tableLegend: document.getElementById("tableLegend"),
+        sessionsBody: document.getElementById("sessionsBody"),
+        footerNote: document.getElementById("footerNote")
+      };
+
+      const metricLabels = {
+        totalTokens: "Все токены",
+        inputTokens: "Входные",
+        outputTokens: "Выходные",
+        cachedInputTokens: "Кэш",
+        reasoningOutputTokens: "Reasoning",
+        otherTokens: "Прочее"
+      };
+
+      function escapeHtml(value) {
+        return String(value ?? "")
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#039;");
+      }
+
+      function formatTokens(value) {
+        const n = Number(value || 0);
+        if (Math.abs(n) >= 1000000) return `${(n / 1000000).toFixed(n >= 10000000 ? 1 : 2)}M`;
+        if (Math.abs(n) >= 1000) return `${(n / 1000).toFixed(n >= 100000 ? 0 : 1)}K`;
+        return new Intl.NumberFormat("ru-RU").format(Math.round(n));
+      }
+
+      function formatInteger(value) {
+        return new Intl.NumberFormat("ru-RU").format(Math.round(Number(value || 0)));
+      }
+
+      function formatPercent(value) {
+        if (value === null || value === undefined || Number.isNaN(Number(value))) return "нет данных";
+        return `${Number(value).toFixed(0)}%`;
+      }
+
+      function formatCompactPercent(value) {
+        if (value === null || value === undefined || Number.isNaN(Number(value))) return "";
+        const n = Number(value);
+        if (Math.abs(n) >= 10) return `${n.toFixed(0)}%`;
+        if (Math.abs(n) >= 1) return `${n.toFixed(1)}%`;
+        return `${n.toFixed(2)}%`;
+      }
+
+      function clampPercent(value) {
+        if (value === null || value === undefined || Number.isNaN(Number(value))) return null;
+        return Math.max(0, Math.min(100, Number(value)));
+      }
+
+      function getWeeklyLimit(limits) {
+        if (!limits) return null;
+        if (limits.weekly) return limits.weekly;
+
+        return [limits.primary, limits.secondary, limits.individual]
+          .filter((limit) => Number(limit?.windowMinutes || 0) >= 10080)
+          .sort((a, b) => Number(b.windowMinutes || 0) - Number(a.windowMinutes || 0))[0] || null;
+      }
+
+      function formatTimeUntil(value) {
+        if (!value) return "нет данных";
+        const target = new Date(value);
+        if (Number.isNaN(target.getTime())) return "нет данных";
+
+        const totalHours = Math.max(0, Math.ceil((target.getTime() - Date.now()) / 3600000));
+        const days = Math.floor(totalHours / 24);
+        const hours = totalHours % 24;
+        if (days > 0) return `${days} д ${hours} ч`;
+        return `${hours} ч`;
+      }
+
+      function getWeeklyLimitStats() {
+        const weekly = getWeeklyLimit(snapshot.summary?.latestRateLimits);
+        const estimate = snapshot.summary?.weeklyLimitEstimate || snapshot.summary?.weeklyBurndown;
+        const estimateUsed = clampPercent(estimate?.usedPercent);
+        const measuredUsed = clampPercent(weekly?.usedPercent);
+        const used = measuredUsed ?? estimateUsed;
+
+        const estimateRemaining = clampPercent(estimate?.remainingPercent ?? (estimateUsed === null ? null : 100 - estimateUsed));
+        const measuredRemaining = clampPercent(weekly?.remainingPercent);
+        const remaining = measuredRemaining ?? estimateRemaining ?? clampPercent(used === null ? null : 100 - used);
+
+        return {
+          hasData: used !== null,
+          used,
+          remaining,
+          resetsAt: weekly?.resetsAt || estimate?.windowEnd || null
+        };
+      }
+
+      function getWeeklyLimitTotalTokens() {
+        const estimate = Number(snapshot.summary?.weeklyLimitEstimate?.estimatedTotalTokens || 0);
+        return estimate > 0 ? estimate : 0;
+      }
+
+      function getWeeklyWindow() {
+        const burndown = snapshot.summary?.weeklyBurndown;
+        const start = burndown?.windowStart ? new Date(burndown.windowStart) : null;
+        const observed = (burndown?.currentPoint?.at || burndown?.observedAt)
+          ? new Date(burndown.currentPoint?.at || burndown.observedAt)
+          : null;
+
+        if (!start || !observed || Number.isNaN(start.getTime()) || Number.isNaN(observed.getTime())) {
+          return null;
+        }
+
+        return { start, observed };
+      }
+
+      function dateKeyFromIso(iso) {
+        if (!iso) return "";
+        const d = new Date(iso);
+        if (Number.isNaN(d.getTime())) return "";
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, "0");
+        const day = String(d.getDate()).padStart(2, "0");
+        return `${year}-${month}-${day}`;
+      }
+
+      function dateFromKey(key) {
+        const [year, month, day] = key.split("-").map(Number);
+        return new Date(year, month - 1, day);
+      }
+
+      function addDays(date, days) {
+        const next = new Date(date);
+        next.setDate(next.getDate() + days);
+        return next;
+      }
+
+      function keyFromDate(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+        return `${year}-${month}-${day}`;
+      }
+
+      function formatDateRu(isoOrKey, withTime = false) {
+        if (!isoOrKey) return "нет даты";
+        const d = isoOrKey.includes("T") ? new Date(isoOrKey) : dateFromKey(isoOrKey);
+        if (Number.isNaN(d.getTime())) return "нет даты";
+        return new Intl.DateTimeFormat("ru-RU", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+          ...(withTime ? { hour: "2-digit", minute: "2-digit" } : {})
+        }).format(d);
+      }
+
+      function normalizeHour(value) {
+        const hour = Number(value);
+        if (!Number.isFinite(hour)) return null;
+        return Math.max(0, Math.min(23, Math.trunc(hour)));
+      }
+
+      function formatHourLabel(value) {
+        const hour = normalizeHour(value);
+        return hour === null ? "нет часа" : `${String(hour).padStart(2, "0")}:00`;
+      }
+
+      function isSelectedHour(date, hour) {
+        return Boolean(
+          state.selectedHour
+          && state.selectedHour.date === date
+          && state.selectedHour.hour === normalizeHour(hour)
+        );
+      }
+
+      function getSelectedHourLabel() {
+        if (!state.selectedHour) return "";
+        return `${formatDateRu(state.selectedHour.date)} · ${formatHourLabel(state.selectedHour.hour)}`;
+      }
+
+      function getLastDateKey() {
+        const dailyDates = (snapshot.daily || []).map((d) => d.date).filter(Boolean).sort();
+        if (dailyDates.length) return dailyDates[dailyDates.length - 1];
+        return dateKeyFromIso(snapshot.generatedAt) || keyFromDate(new Date());
+      }
+
+      function getRangeStartKey() {
+        if (state.range === "all") return "";
+        const last = dateFromKey(getLastDateKey());
+        return keyFromDate(addDays(last, -Number(state.range) + 1));
+      }
+
+      function inRange(dateKey) {
+        if (state.range === "all") return true;
+        return dateKey >= getRangeStartKey() && dateKey <= getLastDateKey();
+      }
+
+      function getSessionLookup() {
+        return new Map((snapshot.sessions || []).map((session) => [session.id, session]));
+      }
+
+      function getHourlySource() {
+        if ((snapshot.hourly || []).length) return snapshot.hourly;
+        return (snapshot.daily || []).map((day) => ({
+          ...day,
+          hour: 0,
+          project: "Все папки"
+        }));
+      }
+
+      function addUsage(target, row) {
+        target.inputTokens += Number(row.inputTokens || 0);
+        target.cachedInputTokens += Number(row.cachedInputTokens || 0);
+        target.outputTokens += Number(row.outputTokens || 0);
+        target.reasoningOutputTokens += Number(row.reasoningOutputTokens || 0);
+        target.otherTokens += Number(row.otherTokens || 0);
+        target.totalTokens += Number(row.totalTokens || 0);
+        target.weeklyLimitTokens += Number(row.weeklyLimitTokens || 0);
+        if (row.weeklyLimitPercent !== null && row.weeklyLimitPercent !== undefined && !Number.isNaN(Number(row.weeklyLimitPercent))) {
+          target.weeklyLimitPercent = Number(target.weeklyLimitPercent || 0) + Number(row.weeklyLimitPercent);
+        }
+        target.turns += Number(row.turns || 0);
+      }
+
+      function makeUsageSeed(extra = {}) {
+        return {
+          inputTokens: 0,
+          cachedInputTokens: 0,
+          outputTokens: 0,
+          reasoningOutputTokens: 0,
+          otherTokens: 0,
+          totalTokens: 0,
+          weeklyLimitTokens: 0,
+          weeklyLimitPercent: null,
+          turns: 0,
+          ...extra
+        };
+      }
+
+      function aggregateRows(rows, keyGetter, seedGetter) {
+        const map = new Map();
+        for (const row of rows) {
+          const key = keyGetter(row);
+          if (!map.has(key)) map.set(key, seedGetter(row));
+          addUsage(map.get(key), row);
+        }
+        return [...map.values()];
+      }
+
+      function getUsageRows({ applyDate = true, applyProject = true, applyHour = true } = {}) {
+        return getHourlySource().filter((row) => {
+          if (!inRange(row.date)) return false;
+          if (applyDate && state.selectedDate && row.date !== state.selectedDate) return false;
+          if (applyHour && state.selectedHour && !isSelectedHour(row.date, row.hour)) return false;
+          if (applyProject && state.selectedProject && row.project !== state.selectedProject) return false;
+          return true;
+        });
+      }
+
+      function getHourlyRowRange(row) {
+        if (!row?.date) return null;
+        const [year, month, day] = row.date.split("-").map(Number);
+        if (!year || !month || !day) return null;
+
+        const hour = Math.max(0, Math.min(23, Number(row.hour || 0)));
+        const start = new Date(year, month - 1, day, hour);
+        const end = new Date(start.getTime() + 60 * 60 * 1000);
+        return { start, end };
+      }
+
+      function isHourlyRowInWeeklyWindow(row, weeklyWindow) {
+        if (!weeklyWindow) return false;
+        const range = getHourlyRowRange(row);
+        if (!range) return false;
+        return range.end > weeklyWindow.start && range.start <= weeklyWindow.observed;
+      }
+
+      function getDailyChartRows() {
+        const usageRows = getUsageRows({ applyDate: false, applyProject: true, applyHour: false });
+
+        return aggregateRows(
+          usageRows,
+          (row) => row.date,
+          (row) => makeUsageSeed({ date: row.date })
+        ).sort((a, b) => a.date.localeCompare(b.date));
+      }
+
+      function getMetricRows() {
+        return getUsageRows({ applyDate: true, applyProject: true });
+      }
+
+      function getProjectSourceRows() {
+        return getUsageRows({ applyDate: true, applyProject: false });
+      }
+
+      function getHourlyDate(dailyRows) {
+        if (state.selectedHour) return state.selectedHour.date;
+        if (state.selectedDate) return state.selectedDate;
+        const dates = dailyRows.map((day) => day.date).filter(Boolean).sort();
+        return dates.length ? dates[dates.length - 1] : getLastDateKey();
+      }
+
+      function getHourlyChartRows(dailyRows) {
+        const date = getHourlyDate(dailyRows);
+        const rows = getUsageRows({ applyDate: false, applyProject: true, applyHour: false }).filter((row) => row.date === date);
+        const byHour = aggregateRows(
+          rows,
+          (row) => String(row.hour),
+          (row) => makeUsageSeed({ hour: Number(row.hour || 0), date })
+        );
+        const map = new Map(byHour.map((row) => [row.hour, row]));
+        return Array.from({ length: 24 }, (_, hour) => map.get(hour) || makeUsageSeed({ hour, date }));
+      }
+
+      function getFilteredSessions() {
+        const q = state.query.trim().toLowerCase();
+        const lookup = getSessionLookup();
+        const hasSessionHourly = (snapshot.sessionHourly || []).length > 0;
+        const source = state.selectedHour && hasSessionHourly
+          ? snapshot.sessionHourly
+          : (snapshot.sessionDaily || []).length
+          ? snapshot.sessionDaily
+          : (snapshot.sessions || []).map((session) => ({
+              ...session,
+              sessionId: session.id,
+              date: dateKeyFromIso(session.end || session.start)
+            }));
+        const grouped = new Map();
+
+        for (const row of source) {
+          const id = row.sessionId || row.id;
+          const meta = lookup.get(id) || {};
+          const date = row.date || dateKeyFromIso(meta.end || meta.start);
+          const project = row.project || meta.project || "Без папки";
+          const title = row.title || meta.title || id;
+          const cwd = row.cwd || meta.cwd || "";
+          const model = meta.model || meta.modelProvider || "";
+          const hour = normalizeHour(row.hour);
+
+          if (date && !inRange(date)) continue;
+          if (state.selectedDate && date !== state.selectedDate) continue;
+          if (state.selectedHour && (date !== state.selectedHour.date || hour !== state.selectedHour.hour)) continue;
+          if (state.selectedProject && project !== state.selectedProject) continue;
+
+          const haystack = [title, project, cwd, model].filter(Boolean).join(" ").toLowerCase();
+          if (q && !haystack.includes(q)) continue;
+
+          if (!grouped.has(id)) {
+            grouped.set(id, makeUsageSeed({
+              id,
+              title,
+              project,
+              cwd,
+              model,
+              start: date,
+              end: date,
+              dateStart: date,
+              dateEnd: date,
+              hourStart: hour,
+              hourEnd: hour
+            }));
+          }
+
+          const target = grouped.get(id);
+          addUsage(target, row);
+          if (date && (!target.dateStart || date < target.dateStart)) target.dateStart = date;
+          if (date && (!target.dateEnd || date > target.dateEnd)) target.dateEnd = date;
+          if (hour !== null && (target.hourStart === null || target.hourStart === undefined || hour < target.hourStart)) target.hourStart = hour;
+          if (hour !== null && (target.hourEnd === null || target.hourEnd === undefined || hour > target.hourEnd)) target.hourEnd = hour;
+          target.start = target.dateStart;
+          target.end = target.dateEnd;
+        }
+
+        return [...grouped.values()].sort((a, b) => compareRows(a, b, state.sort, state.sortDir));
+      }
+
+      function compareRows(a, b, key, dir) {
+        const direction = dir === "asc" ? 1 : -1;
+        const av = a[key] ?? "";
+        const bv = b[key] ?? "";
+
+        if (typeof av === "number" || typeof bv === "number") {
+          return (Number(av || 0) - Number(bv || 0)) * direction;
+        }
+
+        return String(av).localeCompare(String(bv), "ru") * direction;
+      }
+
+      function sumRows(rows) {
+        return rows.reduce((acc, row) => {
+          acc.inputTokens += Number(row.inputTokens || 0);
+          acc.cachedInputTokens += Number(row.cachedInputTokens || 0);
+          acc.outputTokens += Number(row.outputTokens || 0);
+          acc.reasoningOutputTokens += Number(row.reasoningOutputTokens || 0);
+          acc.otherTokens += Number(row.otherTokens || 0);
+          acc.totalTokens += Number(row.totalTokens || 0);
+          acc.turns += Number(row.turns || 0);
+          return acc;
+        }, {
+          inputTokens: 0,
+          cachedInputTokens: 0,
+          outputTokens: 0,
+          reasoningOutputTokens: 0,
+          otherTokens: 0,
+          totalTokens: 0,
+          turns: 0
+        });
+      }
+
+      function getRangeLabel() {
+        if (state.range === "all") return "за весь период";
+        return `за ${state.range} дней`;
+      }
+
+      function getScopeLabel() {
+        const base = state.selectedHour ? getSelectedHourLabel() : state.selectedDate ? formatDateRu(state.selectedDate) : getRangeLabel();
+        return state.selectedProject ? `${base} · ${state.selectedProject}` : base;
+      }
+
+      function renderStatus() {
+        const generated = snapshot.generatedAt ? formatDateRu(snapshot.generatedAt, true) : "нет снимка";
+        const latestTokenAt = snapshot.summary?.latestTokenEventAt
+          || snapshot.summary?.latestRateLimits?.observedAt
+          || "";
+        const latestToken = latestTokenAt ? formatDateRu(latestTokenAt, true) : "нет токенных событий";
+        const files = snapshot.summary?.filesScanned || 0;
+        const events = snapshot.summary?.tokenEvents || 0;
+        els.status.textContent = `Снимок собран: ${generated}. Токены до: ${latestToken}. Файлов: ${formatInteger(files)}, событий token_count: ${formatInteger(events)}.`;
+        els.footerNote.textContent = `Источник: ${snapshot.codexHome || "~/.codex"}; часовой пояс: ${snapshot.localTimeZone || "локальный"}.`;
+      }
+
+      function renderActiveFilters() {
+        const chips = [];
+        if (state.selectedDate) {
+          chips.push(`<span class="filter-chip">День: ${escapeHtml(formatDateRu(state.selectedDate))}</span>`);
+        }
+        if (state.selectedHour) {
+          chips.push(`<span class="filter-chip">Час: ${escapeHtml(getSelectedHourLabel())}</span>`);
+        }
+        if (state.selectedProject) {
+          chips.push(`<span class="filter-chip">Папка: ${escapeHtml(state.selectedProject)}</span>`);
+        }
+
+        if (!chips.length) {
+          els.activeFilters.hidden = true;
+          els.activeFilters.innerHTML = "";
+          return;
+        }
+
+        els.activeFilters.hidden = false;
+        els.activeFilters.innerHTML = `
+          ${chips.join("")}
+          ${state.selectedDate ? `<button class="clear-filter" data-clear="date">Снять день</button>` : ""}
+          ${state.selectedHour ? `<button class="clear-filter" data-clear="hour">Снять час</button>` : ""}
+          ${state.selectedProject ? `<button class="clear-filter" data-clear="project">Снять папку</button>` : ""}
+        `;
+
+        els.activeFilters.querySelectorAll("[data-clear]").forEach((button) => {
+          button.addEventListener("click", () => {
+            if (button.dataset.clear === "date") {
+              state.selectedDate = null;
+              state.selectedHour = null;
+            }
+            if (button.dataset.clear === "hour") state.selectedHour = null;
+            if (button.dataset.clear === "project") state.selectedProject = null;
+            render();
+          });
+        });
+      }
+
+      function renderMetrics(sessions, usageRows, dailyRows) {
+        const totals = sumRows(usageRows);
+        const sessionTotals = sumRows(sessions);
+        const peakDay = dailyRows.reduce((best, day) => Number(day.totalTokens || 0) > Number(best.totalTokens || 0) ? day : best, { totalTokens: 0 });
+        const avgPerSession = sessions.length ? sessionTotals.totalTokens / sessions.length : 0;
+        const cachedShare = totals.inputTokens ? totals.cachedInputTokens / totals.inputTokens * 100 : 0;
+        const reasoningShare = totals.outputTokens ? totals.reasoningOutputTokens / totals.outputTokens * 100 : 0;
+        const weeklyLimit = getWeeklyLimitStats();
+
+        const cards = [
+          ["Всего", formatTokens(totals.totalTokens), `${formatInteger(totals.turns)} ходов ${getScopeLabel()}`],
+          ["Входные", formatTokens(totals.inputTokens), `${formatPercent(cachedShare)} из них кэш`],
+          ["Выходные", formatTokens(totals.outputTokens), `${formatPercent(reasoningShare)} из них reasoning`],
+          ["Треды", formatInteger(sessions.length), `среднее: ${formatTokens(avgPerSession)}`],
+          ["Пик дня", formatTokens(peakDay.totalTokens), peakDay.date ? formatDateRu(peakDay.date) : "нет данных"],
+          ["Лимит недели", formatPercent(weeklyLimit.used), "использовано"],
+          ["Осталось", formatPercent(weeklyLimit.remaining), "недельного лимита"],
+          ["Кэш", formatTokens(totals.cachedInputTokens), "внутри входных"],
+          ["Reasoning", formatTokens(totals.reasoningOutputTokens), "внутри выходных"],
+          ["Прочее", formatTokens(totals.otherTokens), "не разложено логом"]
+        ];
+
+        els.metrics.innerHTML = cards.map(([label, value, note]) => `
+          <article class="metric-card">
+            <div class="metric-label">${escapeHtml(label)}</div>
+            <div class="metric-value">${escapeHtml(value)}</div>
+            <div class="metric-note">${escapeHtml(note)}</div>
+          </article>
+        `).join("");
+      }
+
+      function renderDailyChart(daily) {
+        const projectLabel = state.selectedProject ? ` · ${state.selectedProject}` : "";
+        els.chartSubtitle.textContent = `${metricLabels[state.metric]} ${getRangeLabel()}${projectLabel}`;
+        if (!daily.length) {
+          els.dailyChart.innerHTML = `<div class="empty">Нет данных за выбранный период</div>`;
+          return;
+        }
+
+        const width = 920;
+        const height = 310;
+        const pad = { top: 42, right: 16, bottom: 42, left: 64 };
+        const plotW = width - pad.left - pad.right;
+        const plotH = height - pad.top - pad.bottom;
+        const maxTotal = Math.max(...daily.map((day) => Number(day.totalTokens || 0)), 1);
+        const barGap = Math.max(3, Math.min(10, plotW / daily.length * 0.18));
+        const barW = Math.max(5, (plotW - barGap * (daily.length - 1)) / daily.length);
+        const ticks = [0, 0.25, 0.5, 0.75, 1];
+
+        const bars = daily.map((day, i) => {
+          const x = pad.left + i * (barW + barGap);
+          const inputH = Number(day.inputTokens || 0) / maxTotal * plotH;
+          const outputH = Number(day.outputTokens || 0) / maxTotal * plotH;
+          const otherH = Number(day.otherTokens || 0) / maxTotal * plotH;
+          const totalH = Math.max(1, Number(day.totalTokens || 0) / maxTotal * plotH);
+          const baseY = pad.top + plotH;
+          const inputY = baseY - inputH;
+          const outputY = inputY - outputH;
+          const otherY = outputY - otherH;
+          const label = `${formatDateRu(day.date)}: ${formatTokens(day.totalTokens)} токенов`;
+          const showDate = daily.length <= 18 || i % Math.ceil(daily.length / 12) === 0;
+          const selected = state.selectedDate === day.date;
+          const limitLabel = formatCompactPercent(day.weeklyLimitPercent);
+          const limitLabelY = Math.max(14, pad.top + plotH - totalH - 8);
+
+          return `
+            <g>
+              <title>${escapeHtml(label)}</title>
+              ${limitLabel ? `<text class="bar-limit-label" x="${(x + barW / 2).toFixed(2)}" y="${limitLabelY.toFixed(2)}" text-anchor="middle">${escapeHtml(limitLabel)}</text>` : ""}
+              <rect class="bar-muted" x="${x.toFixed(2)}" y="${(pad.top + plotH - totalH).toFixed(2)}" width="${barW.toFixed(2)}" height="${totalH.toFixed(2)}" rx="4"></rect>
+              <rect class="bar-input" x="${x.toFixed(2)}" y="${inputY.toFixed(2)}" width="${barW.toFixed(2)}" height="${Math.max(0, inputH).toFixed(2)}" rx="4"></rect>
+              <rect class="bar-output" x="${x.toFixed(2)}" y="${outputY.toFixed(2)}" width="${barW.toFixed(2)}" height="${Math.max(0, outputH).toFixed(2)}" rx="4"></rect>
+              <rect class="bar-other" x="${x.toFixed(2)}" y="${otherY.toFixed(2)}" width="${barW.toFixed(2)}" height="${Math.max(0, otherH).toFixed(2)}" rx="4"></rect>
+              ${selected ? `<rect class="bar-selected" x="${(x - 2).toFixed(2)}" y="${(pad.top + plotH - totalH - 2).toFixed(2)}" width="${(barW + 4).toFixed(2)}" height="${(totalH + 4).toFixed(2)}" rx="5"></rect>` : ""}
+              <rect class="bar-hit" data-date="${escapeHtml(day.date)}" x="${x.toFixed(2)}" y="${pad.top}" width="${barW.toFixed(2)}" height="${plotH}" tabindex="0"></rect>
+              ${showDate ? `<text class="axis-text" x="${(x + barW / 2).toFixed(2)}" y="${height - 14}" text-anchor="middle">${escapeHtml(day.date.slice(5))}</text>` : ""}
+            </g>
+          `;
+        }).join("");
+
+        const grid = ticks.map((tick) => {
+          const y = pad.top + plotH - plotH * tick;
+          const value = maxTotal * tick;
+          return `
+            <line class="grid-line" x1="${pad.left}" x2="${width - pad.right}" y1="${y.toFixed(2)}" y2="${y.toFixed(2)}"></line>
+            <text class="axis-text" x="${pad.left - 10}" y="${(y + 4).toFixed(2)}" text-anchor="end">${escapeHtml(formatTokens(value))}</text>
+          `;
+        }).join("");
+
+        els.dailyChart.innerHTML = `
+          <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Динамика потребления токенов">
+            ${grid}
+            ${bars}
+          </svg>
+        `;
+
+        els.dailyChart.querySelectorAll(".bar-hit").forEach((bar) => {
+          bar.addEventListener("click", () => {
+            state.selectedDate = state.selectedDate === bar.dataset.date ? null : bar.dataset.date;
+            state.selectedHour = null;
+            render();
+          });
+          bar.addEventListener("keydown", (event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              state.selectedDate = state.selectedDate === bar.dataset.date ? null : bar.dataset.date;
+              state.selectedHour = null;
+              render();
+            }
+          });
+        });
+      }
+
+      function renderHourlyChart(hourlyRows, hourlyDate) {
+        const projectLabel = state.selectedProject ? ` · ${state.selectedProject}` : "";
+        const dateLabel = hourlyDate ? formatDateRu(hourlyDate) : "нет даты";
+        const hourLabel = state.selectedHour && state.selectedHour.date === hourlyDate ? ` · выбран ${formatHourLabel(state.selectedHour.hour)}` : "";
+        els.hourlySubtitle.textContent = `${dateLabel}${state.selectedDate ? "" : " · последний день"}${hourLabel}${projectLabel}`;
+
+        if (!hourlyRows.length || sumRows(hourlyRows).totalTokens === 0) {
+          els.hourlyChart.innerHTML = `<div class="empty">Нет почасовых данных</div>`;
+          return;
+        }
+
+        const width = 920;
+        const height = 260;
+        const pad = { top: 16, right: 16, bottom: 38, left: 64 };
+        const plotW = width - pad.left - pad.right;
+        const plotH = height - pad.top - pad.bottom;
+        const maxTotal = Math.max(...hourlyRows.map((row) => Number(row.totalTokens || 0)), 1);
+        const barGap = 6;
+        const barW = Math.max(8, (plotW - barGap * (hourlyRows.length - 1)) / hourlyRows.length);
+        const ticks = [0, 0.25, 0.5, 0.75, 1];
+
+        const bars = hourlyRows.map((row, i) => {
+          const x = pad.left + i * (barW + barGap);
+          const inputH = Number(row.inputTokens || 0) / maxTotal * plotH;
+          const outputH = Number(row.outputTokens || 0) / maxTotal * plotH;
+          const otherH = Number(row.otherTokens || 0) / maxTotal * plotH;
+          const totalH = Math.max(1, Number(row.totalTokens || 0) / maxTotal * plotH);
+          const baseY = pad.top + plotH;
+          const inputY = baseY - inputH;
+          const outputY = inputY - outputH;
+          const otherY = outputY - otherH;
+          const hourLabel = `${String(row.hour).padStart(2, "0")}:00`;
+          const label = `${hourLabel}: ${formatTokens(row.totalTokens)} токенов`;
+          const selected = isSelectedHour(row.date, row.hour);
+
+          return `
+            <g>
+              <title>${escapeHtml(label)}</title>
+              <rect class="bar-muted" x="${x.toFixed(2)}" y="${(pad.top + plotH - totalH).toFixed(2)}" width="${barW.toFixed(2)}" height="${totalH.toFixed(2)}" rx="4"></rect>
+              <rect class="bar-input" x="${x.toFixed(2)}" y="${inputY.toFixed(2)}" width="${barW.toFixed(2)}" height="${Math.max(0, inputH).toFixed(2)}" rx="4"></rect>
+              <rect class="bar-output" x="${x.toFixed(2)}" y="${outputY.toFixed(2)}" width="${barW.toFixed(2)}" height="${Math.max(0, outputH).toFixed(2)}" rx="4"></rect>
+              <rect class="bar-other" x="${x.toFixed(2)}" y="${otherY.toFixed(2)}" width="${barW.toFixed(2)}" height="${Math.max(0, otherH).toFixed(2)}" rx="4"></rect>
+              ${selected ? `<rect class="bar-selected" x="${(x - 2).toFixed(2)}" y="${(pad.top + plotH - totalH - 2).toFixed(2)}" width="${(barW + 4).toFixed(2)}" height="${(totalH + 4).toFixed(2)}" rx="5"></rect>` : ""}
+              <rect class="bar-hit" data-date="${escapeHtml(row.date || hourlyDate)}" data-hour="${escapeHtml(row.hour)}" x="${x.toFixed(2)}" y="${pad.top}" width="${barW.toFixed(2)}" height="${plotH}" tabindex="0"></rect>
+              ${row.hour % 3 === 0 ? `<text class="axis-text" x="${(x + barW / 2).toFixed(2)}" y="${height - 14}" text-anchor="middle">${escapeHtml(String(row.hour).padStart(2, "0"))}</text>` : ""}
+            </g>
+          `;
+        }).join("");
+
+        const grid = ticks.map((tick) => {
+          const y = pad.top + plotH - plotH * tick;
+          const value = maxTotal * tick;
+          return `
+            <line class="grid-line" x1="${pad.left}" x2="${width - pad.right}" y1="${y.toFixed(2)}" y2="${y.toFixed(2)}"></line>
+            <text class="axis-text" x="${pad.left - 10}" y="${(y + 4).toFixed(2)}" text-anchor="end">${escapeHtml(formatTokens(value))}</text>
+          `;
+        }).join("");
+
+        els.hourlyChart.innerHTML = `
+          <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Потребление токенов по часам">
+            ${grid}
+            ${bars}
+          </svg>
+        `;
+
+        const selectHour = (bar) => {
+          const date = bar.dataset.date;
+          const hour = normalizeHour(bar.dataset.hour);
+          if (!date || hour === null) return;
+
+          if (isSelectedHour(date, hour)) {
+            state.selectedHour = null;
+          } else {
+            state.selectedDate = date;
+            state.selectedHour = { date, hour };
+          }
+
+          render();
+        };
+
+        els.hourlyChart.querySelectorAll("[data-hour]").forEach((bar) => {
+          bar.addEventListener("click", () => selectHour(bar));
+          bar.addEventListener("keydown", (event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              selectHour(bar);
+            }
+          });
+        });
+      }
+
+      function renderWeeklyBurndown() {
+        const burndown = snapshot.summary?.weeklyBurndown;
+        const current = burndown?.currentPoint || {};
+        const start = burndown?.windowStart ? new Date(burndown.windowStart) : null;
+        const end = burndown?.windowEnd ? new Date(burndown.windowEnd) : null;
+        const observed = (current.at || burndown?.observedAt) ? new Date(current.at || burndown.observedAt) : null;
+        const total = Number(burndown?.estimatedTotalTokens || 0);
+
+        if (!burndown || !start || !end || !observed || !total || Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || Number.isNaN(observed.getTime())) {
+          els.burndownSubtitle.textContent = "нет данных по текущему недельному окну";
+          els.burndownChart.innerHTML = `<div class="empty">В событиях token_count нет данных для burndown</div>`;
+          return;
+        }
+
+        const currentUsed = clampPercent(current.usedPercent ?? burndown.usedPercent) ?? 0;
+        const currentPlan = clampPercent(current.planPercent ?? burndown.planPercent) ?? 0;
+        els.burndownSubtitle.textContent = `${formatDateRu(burndown.windowStart, true)} - ${formatDateRu(burndown.windowEnd, true)} · факт: ${formatCompactPercent(currentUsed)}, равномерно: ${formatCompactPercent(currentPlan)}`;
+
+        const width = 920;
+        const height = 310;
+        const pad = { top: 26, right: 24, bottom: 46, left: 58 };
+        const plotW = width - pad.left - pad.right;
+        const plotH = height - pad.top - pad.bottom;
+        const startMs = start.getTime();
+        const endMs = end.getTime();
+        const durationMs = Math.max(1, endMs - startMs);
+        const axisFormatter = new Intl.DateTimeFormat("ru-RU", {
+          day: "2-digit",
+          month: "2-digit",
+          hour: "2-digit"
+        });
+
+        const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+        const xScale = (value) => {
+          const date = value instanceof Date ? value : new Date(value);
+          const ratio = clamp((date.getTime() - startMs) / durationMs, 0, 1);
+          return pad.left + ratio * plotW;
+        };
+        const yScale = (value) => pad.top + plotH - (clamp(Number(value || 0), 0, 100) / 100 * plotH);
+        const pathFromPoints = (points) => points.map((point, index) => {
+          const command = index === 0 ? "M" : "L";
+          return `${command}${xScale(point.at).toFixed(2)},${yScale(point.usedPercent).toFixed(2)}`;
+        }).join(" ");
+
+        const actualPoints = (burndown.points || [])
+          .filter((point) => point?.at && point.usedPercent !== null && point.usedPercent !== undefined)
+          .map((point) => ({ at: point.at, usedPercent: Number(point.usedPercent) }));
+        const currentPoint = {
+          at: current.at || burndown.observedAt,
+          usedPercent: currentUsed
+        };
+
+        if (actualPoints.length && actualPoints[actualPoints.length - 1].at === currentPoint.at) {
+          actualPoints[actualPoints.length - 1] = currentPoint;
+        } else {
+          actualPoints.push(currentPoint);
+        }
+
+        const yTicks = [0, 25, 50, 75, 100];
+        const yGrid = yTicks.map((tick) => {
+          const y = yScale(tick);
+          return `
+            <line class="grid-line" x1="${pad.left}" x2="${width - pad.right}" y1="${y.toFixed(2)}" y2="${y.toFixed(2)}"></line>
+            <text class="axis-text" x="${pad.left - 10}" y="${(y + 4).toFixed(2)}" text-anchor="end">${tick}%</text>
+          `;
+        }).join("");
+
+        const xGrid = Array.from({ length: 8 }, (_, index) => {
+          const tickDate = new Date(startMs + durationMs * index / 7);
+          const x = xScale(tickDate);
+          return `
+            <line class="grid-line" x1="${x.toFixed(2)}" x2="${x.toFixed(2)}" y1="${pad.top}" y2="${(pad.top + plotH).toFixed(2)}"></line>
+            <text class="axis-text" x="${x.toFixed(2)}" y="${height - 16}" text-anchor="${index === 0 ? "start" : index === 7 ? "end" : "middle"}">${escapeHtml(axisFormatter.format(tickDate))}</text>
+          `;
+        }).join("");
+
+        const actualPath = actualPoints.length > 1 ? pathFromPoints(actualPoints) : "";
+        const nowX = xScale(observed);
+        const actualY = yScale(currentUsed);
+        const planY = yScale(currentPlan);
+        const labelLeft = nowX > width - 280;
+        const labelX = labelLeft ? nowX - 10 : nowX + 10;
+        const labelY = clamp(actualY - 12, pad.top + 16, pad.top + plotH - 34);
+        const labelAnchor = labelLeft ? "end" : "start";
+
+        els.burndownChart.innerHTML = `
+          <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Недельный burndown потребления токенов">
+            ${yGrid}
+            ${xGrid}
+            <path class="burndown-plan" d="M${pad.left},${yScale(0).toFixed(2)} L${(width - pad.right).toFixed(2)},${yScale(100).toFixed(2)}"></path>
+            ${actualPath ? `<path class="burndown-actual" d="${actualPath}"></path>` : ""}
+            <line class="burndown-now-line" x1="${nowX.toFixed(2)}" x2="${nowX.toFixed(2)}" y1="${pad.top}" y2="${(pad.top + plotH).toFixed(2)}"></line>
+            <circle class="burndown-marker-plan" cx="${nowX.toFixed(2)}" cy="${planY.toFixed(2)}" r="5"></circle>
+            <circle class="burndown-marker" cx="${nowX.toFixed(2)}" cy="${actualY.toFixed(2)}" r="6"></circle>
+            <text class="burndown-label" x="${labelX.toFixed(2)}" y="${labelY.toFixed(2)}" text-anchor="${labelAnchor}">${escapeHtml(`Сейчас: ${formatCompactPercent(currentUsed)}`)}</text>
+            <text class="burndown-note" x="${labelX.toFixed(2)}" y="${(labelY + 17).toFixed(2)}" text-anchor="${labelAnchor}">${escapeHtml(`Равномерно: ${formatCompactPercent(currentPlan)}`)}</text>
+          </svg>
+        `;
+      }
+
+      function renderMix(daily) {
+        const totals = sumRows(daily);
+        const safeTotal = Math.max(1, totals.totalTokens);
+        const inputPct = totals.inputTokens / safeTotal * 100;
+        const outputPct = totals.outputTokens / safeTotal * 100;
+        const otherPct = totals.otherTokens / safeTotal * 100;
+        const cachedPct = totals.inputTokens ? totals.cachedInputTokens / totals.inputTokens * 100 : 0;
+        const reasoningPct = totals.outputTokens ? totals.reasoningOutputTokens / totals.outputTokens * 100 : 0;
+
+        els.mixSubtitle.textContent = getScopeLabel();
+        els.mixPanel.innerHTML = `
+          <div class="stack" aria-label="Состав токенов">
+            <div class="stack-part stack-input" style="width: ${inputPct}%"></div>
+            <div class="stack-part stack-output" style="width: ${outputPct}%"></div>
+            <div class="stack-part" style="width: ${otherPct}%; background: var(--slate);"></div>
+          </div>
+          <div class="mix-list">
+            ${renderValueRow("Входные", formatTokens(totals.inputTokens), inputPct)}
+            ${renderValueRow("Выходные", formatTokens(totals.outputTokens), outputPct)}
+            ${renderValueRow("Прочее", formatTokens(totals.otherTokens), otherPct)}
+            ${renderValueRow("Кэш внутри входных", formatTokens(totals.cachedInputTokens), cachedPct)}
+            ${renderValueRow("Reasoning внутри выходных", formatTokens(totals.reasoningOutputTokens), reasoningPct)}
+          </div>
+        `;
+      }
+
+      function renderValueRow(label, value, percent) {
+        const pct = Math.max(0, Math.min(100, Number(percent || 0)));
+        return `
+          <div class="mix-row">
+            <div class="row-main">${escapeHtml(label)}</div>
+            <div class="row-value">${escapeHtml(value)} · ${formatPercent(pct)}</div>
+            <div class="progress"><div class="progress-fill" style="width: ${pct}%"></div></div>
+          </div>
+        `;
+      }
+
+      function renderLimits() {
+        const limits = snapshot.summary?.latestRateLimits;
+        const weekly = getWeeklyLimit(limits);
+        const estimate = snapshot.summary?.weeklyLimitEstimate || snapshot.summary?.weeklyBurndown;
+        if (!weekly && !estimate) {
+          els.limitsSubtitle.textContent = "нет последних замеров";
+          els.limitsPanel.innerHTML = `<div class="empty">В событиях token_count нет данных по лимитам</div>`;
+          return;
+        }
+
+        const observedAt = limits?.observedAt || estimate?.observedAt;
+        els.limitsSubtitle.textContent = observedAt ? `замер: ${formatDateRu(observedAt, true)}` : "последний замер";
+        const measuredUsed = clampPercent(weekly?.usedPercent);
+        const estimateUsed = clampPercent(estimate?.usedPercent);
+        const used = measuredUsed ?? estimateUsed;
+        const measuredRemaining = clampPercent(weekly?.remainingPercent);
+        const estimateRemaining = clampPercent(estimate?.remainingPercent);
+        const remaining = measuredRemaining ?? estimateRemaining ?? clampPercent(used === null ? null : 100 - used);
+
+        if (used === null || remaining === null) {
+          els.limitsPanel.innerHTML = `<div class="empty">В последнем замере нет процента недельного лимита</div>`;
+          return;
+        }
+
+        const cls = remaining <= 15 ? "hot" : remaining <= 35 ? "warn" : "";
+        const resetAt = weekly?.resetsAt || estimate?.windowEnd || null;
+        const reset = resetAt ? formatDateRu(resetAt, true) : "нет данных";
+        const segments = Array.from({ length: 10 }, () => "<span></span>").join("");
+
+        els.limitsPanel.innerHTML = `
+          <div class="weekly-limit-card">
+            <div class="limit-hero">
+              <div>
+                <div class="limit-kicker">Осталось на неделю</div>
+                <div class="limit-remaining ${cls}">${formatPercent(remaining)}</div>
+              </div>
+              <div class="limit-reset">
+                <span class="limit-reset-label">До сброса</span>
+                <strong>${escapeHtml(formatTimeUntil(resetAt))}</strong>
+              </div>
+            </div>
+            <div class="battery-gauge" role="progressbar" aria-label="Остаток недельного лимита" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${remaining}">
+              <div class="battery-shell">
+                <div class="battery-fill ${cls}" style="width: ${remaining}%"></div>
+                <div class="battery-segments" aria-hidden="true">${segments}</div>
+              </div>
+              <div class="battery-cap" aria-hidden="true"></div>
+            </div>
+            <div class="limit-facts">
+              <div class="limit-fact">
+                <span>Использовано</span>
+                <strong>${formatPercent(used)}</strong>
+              </div>
+              <div class="limit-fact">
+                <span>Сброс лимита</span>
+                <strong>${escapeHtml(reset)}</strong>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      function renderProjects(sourceRows) {
+        const totals = new Map();
+        for (const row of sourceRows) {
+          const key = row.project || "Без папки";
+          totals.set(key, (totals.get(key) || 0) + Number(row.totalTokens || 0));
+        }
+
+        const projectRows = [...totals.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8);
+        const max = Math.max(...projectRows.map(([, value]) => value), 1);
+        const timeLabel = state.selectedHour
+          ? getSelectedHourLabel()
+          : `${getRangeLabel()}${state.selectedDate ? ` · ${formatDateRu(state.selectedDate)}` : ""}`;
+        els.projectsSubtitle.textContent = `${formatInteger(projectRows.length)} папок · ${timeLabel}`;
+
+        if (!projectRows.length) {
+          els.projectsPanel.innerHTML = `<div class="empty">Нет тредов за выбранный период</div>`;
+          return;
+        }
+
+        els.projectsPanel.innerHTML = `
+          <div class="project-list">
+            ${projectRows.map(([project, value]) => `
+              <button class="project-row project-button ${state.selectedProject === project ? "is-active" : ""}" data-project="${escapeHtml(project)}">
+                <div class="row-main" title="${escapeHtml(project)}">${escapeHtml(project)}</div>
+                <div class="row-value">${escapeHtml(formatTokens(value))}</div>
+                <div class="progress"><div class="progress-fill" style="width: ${(value / max * 100).toFixed(2)}%"></div></div>
+              </button>
+            `).join("")}
+          </div>
+        `;
+
+        els.projectsPanel.querySelectorAll("[data-project]").forEach((button) => {
+          button.addEventListener("click", () => {
+            state.selectedProject = state.selectedProject === button.dataset.project ? null : button.dataset.project;
+            render();
+          });
+        });
+      }
+
+      function formatSessionDate(session) {
+        if (session.dateStart && session.dateEnd && session.dateStart === session.dateEnd && session.hourStart !== null && session.hourStart !== undefined) {
+          const startHour = formatHourLabel(session.hourStart);
+          const endHour = session.hourEnd !== null && session.hourEnd !== undefined && session.hourEnd !== session.hourStart
+            ? `-${formatHourLabel(session.hourEnd)}`
+            : "";
+          return `${formatDateRu(session.dateStart)} · ${startHour}${endHour}`;
+        }
+
+        if (session.dateStart && session.dateEnd && session.dateStart !== session.dateEnd) {
+          return `${formatDateRu(session.dateStart)} - ${formatDateRu(session.dateEnd)}`;
+        }
+
+        if (session.dateEnd || session.dateStart) {
+          return formatDateRu(session.dateEnd || session.dateStart);
+        }
+
+        return formatDateRu(session.end || session.start, true);
+      }
+
+      function renderTable(sessions) {
+        const limited = sessions.slice(0, 250);
+        const totalRows = sessions.length;
+        const selectedTotals = sumRows(sessions);
+        els.tableSubtitle.textContent = `${formatInteger(totalRows)} тредов, ${formatTokens(selectedTotals.totalTokens)} токенов · ${getScopeLabel()}`;
+        els.tableLegend.textContent = totalRows > limited.length ? `показаны первые ${formatInteger(limited.length)}` : "";
+
+        if (!limited.length) {
+          els.sessionsBody.innerHTML = `<tr><td colspan="10"><div class="empty">Нет тредов под выбранные фильтры</div></td></tr>`;
+          return;
+        }
+
+        els.sessionsBody.innerHTML = limited.map((session) => `
+          <tr>
+            <td class="thread">
+              <div class="thread-title" title="${escapeHtml(session.title)}">${escapeHtml(session.title || session.id)}</div>
+              <div class="thread-meta" title="${escapeHtml(session.cwd || "")}">${escapeHtml(session.model || session.modelProvider || session.id)}</div>
+            </td>
+            <td><span class="pill" title="${escapeHtml(session.cwd || session.project || "")}">${escapeHtml(session.project || "Без папки")}</span></td>
+            <td>${escapeHtml(formatSessionDate(session))}</td>
+            <td class="number">${formatInteger(session.turns)}</td>
+            <td class="number">${formatTokens(session.totalTokens)}</td>
+            <td class="number">${formatTokens(session.inputTokens)}</td>
+            <td class="number">${formatTokens(session.outputTokens)}</td>
+            <td class="number">${formatTokens(session.cachedInputTokens)}</td>
+            <td class="number">${formatTokens(session.reasoningOutputTokens)}</td>
+            <td class="number">${formatTokens(session.otherTokens)}</td>
+          </tr>
+        `).join("");
+      }
+
+      function downloadCsv() {
+        const sessions = getFilteredSessions();
+        const header = [
+          "title",
+          "project",
+          "start",
+          "end",
+          "turns",
+          "total_tokens",
+          "input_tokens",
+          "output_tokens",
+          "cached_input_tokens",
+          "reasoning_output_tokens",
+          "other_tokens",
+          "cwd"
+        ];
+
+        const rows = sessions.map((session) => [
+          session.title,
+          session.project,
+          session.start,
+          session.end,
+          session.turns,
+          session.totalTokens,
+          session.inputTokens,
+          session.outputTokens,
+          session.cachedInputTokens,
+          session.reasoningOutputTokens,
+          session.otherTokens,
+          session.cwd
+        ]);
+
+        const csv = [header, ...rows].map((row) => row.map((cell) => {
+          const value = String(cell ?? "");
+          return `"${value.replaceAll('"', '""')}"`;
+        }).join(",")).join("\n");
+
+        const blob = new Blob(["\ufeff", csv], { type: "text/csv;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `codex-token-usage-${getLastDateKey()}.csv`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+      }
+
+      function render() {
+        if (state.selectedDate && !inRange(state.selectedDate)) {
+          state.selectedDate = null;
+        }
+        if (state.selectedHour) {
+          const normalized = normalizeHour(state.selectedHour.hour);
+          if (!state.selectedHour.date || normalized === null || !inRange(state.selectedHour.date)) {
+            state.selectedHour = null;
+          } else {
+            state.selectedHour.hour = normalized;
+          }
+        }
+        if (state.selectedHour && state.selectedDate && state.selectedHour.date !== state.selectedDate) {
+          state.selectedHour = null;
+        }
+
+        renderStatus();
+        renderActiveFilters();
+        const daily = getDailyChartRows();
+        const usageRows = getMetricRows();
+        const projectRows = getProjectSourceRows();
+        const hourlyDate = getHourlyDate(daily);
+        const hourlyRows = getHourlyChartRows(daily);
+        const sessions = getFilteredSessions();
+        renderMetrics(sessions, usageRows, daily);
+        renderWeeklyBurndown();
+        renderDailyChart(daily);
+        renderHourlyChart(hourlyRows, hourlyDate);
+        renderMix(usageRows);
+        renderLimits();
+        renderProjects(projectRows);
+        renderTable(sessions);
+      }
+
+      els.range.addEventListener("change", () => {
+        state.range = els.range.value;
+        render();
+      });
+
+      els.metric.addEventListener("change", () => {
+        state.metric = els.metric.value;
+        render();
+      });
+
+      els.search.addEventListener("input", () => {
+        state.query = els.search.value;
+        render();
+      });
+
+      els.reload.addEventListener("click", () => {
+        window.location.reload();
+      });
+
+      function scheduleHourlyReload() {
+        const now = new Date();
+        const nextReload = new Date(now);
+        nextReload.setMinutes(5, 0, 0);
+
+        if (nextReload <= now) {
+          nextReload.setHours(nextReload.getHours() + 1);
+        }
+
+        window.setTimeout(() => {
+          window.location.reload();
+        }, nextReload.getTime() - now.getTime());
+      }
+
+      els.csv.addEventListener("click", downloadCsv);
+
+      document.querySelectorAll("th button[data-sort]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const key = button.dataset.sort;
+          if (state.sort === key) {
+            state.sortDir = state.sortDir === "asc" ? "desc" : "asc";
+          } else {
+            state.sort = key;
+            state.sortDir = key === "title" || key === "project" ? "asc" : "desc";
+          }
+          render();
+        });
+      });
+
+      render();
+      scheduleHourlyReload();
+    })();
+  </script>
+</body>
+</html>

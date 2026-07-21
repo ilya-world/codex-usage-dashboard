@@ -1,0 +1,31 @@
+# Local Codex usage data. These files can contain task titles and local paths.
+data/*
+!data/.gitkeep
+logs/
+
+# Raw Codex/session data must never be committed here.
+*.jsonl
+*.db
+*.db-*
+*.sqlite
+*.sqlite3
+
+# Local configuration and credentials.
+.env
+.env.*
+*.local
+*.key
+*.pem
+*.pfx
+*.p12
+
+# Runtime files.
+*.log
+*.pid
+*.tmp
+
+# Editor and OS files.
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
