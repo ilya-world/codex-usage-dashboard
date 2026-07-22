@@ -602,6 +602,28 @@
       align-items: center;
     }
 
+    .limit-battery-block {
+      display: grid;
+      gap: 8px;
+    }
+
+    .limit-token-volume {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 4px 16px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .limit-token-volume strong {
+      color: var(--ink);
+      font-weight: 650;
+      font-variant-numeric: tabular-nums;
+    }
+
     .battery-shell {
       position: relative;
       height: 70px;
@@ -1165,6 +1187,23 @@
         return new Intl.NumberFormat("ru-RU").format(Math.round(n));
       }
 
+      function formatTokenVolume(value) {
+        const n = Number(value || 0);
+        if (!Number.isFinite(n) || n < 0) return "";
+        if (n === 0) return "0";
+
+        if (n >= 1000000000) {
+          return `${new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 2 }).format(n / 1000000000)} млрд`;
+        }
+        if (n >= 1000000) {
+          return `${new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 1 }).format(n / 1000000)} млн`;
+        }
+        if (n >= 1000) {
+          return `${new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 1 }).format(n / 1000)} тыс.`;
+        }
+        return formatInteger(n);
+      }
+
       function formatInteger(value) {
         return new Intl.NumberFormat("ru-RU").format(Math.round(Number(value || 0)));
       }
@@ -1725,8 +1764,8 @@
         }
 
         const width = 920;
-        const height = 260;
-        const pad = { top: 16, right: 16, bottom: 38, left: 64 };
+        const height = 286;
+        const pad = { top: 42, right: 16, bottom: 38, left: 64 };
         const plotW = width - pad.left - pad.right;
         const plotH = height - pad.top - pad.bottom;
         const maxTotal = Math.max(...hourlyRows.map((row) => Number(row.totalTokens || 0)), 1);
@@ -1745,12 +1784,15 @@
           const outputY = inputY - outputH;
           const otherY = outputY - otherH;
           const hourLabel = `${String(row.hour).padStart(2, "0")}:00`;
-          const label = `${hourLabel}: ${formatTokens(row.totalTokens)} токенов`;
           const selected = isSelectedHour(row.date, row.hour);
+          const limitLabel = formatCompactPercent(row.weeklyLimitPercent);
+          const limitLabelY = Math.max(14, pad.top + plotH - totalH - 8);
+          const label = `${hourLabel}: ${formatTokens(row.totalTokens)} токенов${limitLabel ? ` · ${limitLabel} недельного лимита` : ""}`;
 
           return `
             <g>
               <title>${escapeHtml(label)}</title>
+              ${limitLabel ? `<text class="bar-limit-label" x="${(x + barW / 2).toFixed(2)}" y="${limitLabelY.toFixed(2)}" text-anchor="middle">${escapeHtml(limitLabel)}</text>` : ""}
               <rect class="bar-muted" x="${x.toFixed(2)}" y="${(pad.top + plotH - totalH).toFixed(2)}" width="${barW.toFixed(2)}" height="${totalH.toFixed(2)}" rx="4"></rect>
               <rect class="bar-input" x="${x.toFixed(2)}" y="${inputY.toFixed(2)}" width="${barW.toFixed(2)}" height="${Math.max(0, inputH).toFixed(2)}" rx="4"></rect>
               <rect class="bar-output" x="${x.toFixed(2)}" y="${outputY.toFixed(2)}" width="${barW.toFixed(2)}" height="${Math.max(0, outputH).toFixed(2)}" rx="4"></rect>
@@ -1969,6 +2011,16 @@
         const resetAt = weekly?.resetsAt || estimate?.windowEnd || null;
         const reset = resetAt ? formatDateRu(resetAt, true) : "нет данных";
         const segments = Array.from({ length: 10 }, () => "<span></span>").join("");
+        const estimatedTotalTokens = Number(estimate?.estimatedTotalTokens || 0);
+        const usedTokens = Number(estimate?.windowTokenUsage ?? estimate?.currentPoint?.cumulativeTokens ?? 0);
+        const hasTokenVolume = Number.isFinite(estimatedTotalTokens) && estimatedTotalTokens > 0
+          && Number.isFinite(usedTokens) && usedTokens >= 0;
+        const tokenVolume = hasTokenVolume ? `
+          <div class="limit-token-volume" title="Оценка рассчитана по журналам токенов и последнему проценту недельного лимита">
+            <span>Оценка 100%: <strong>≈ ${escapeHtml(formatTokenVolume(estimatedTotalTokens))} токенов</strong></span>
+            <span>Израсходовано: <strong>${escapeHtml(formatTokenVolume(usedTokens))} токенов</strong></span>
+          </div>
+        ` : "";
 
         els.limitsPanel.innerHTML = `
           <div class="weekly-limit-card">
@@ -1982,12 +2034,15 @@
                 <strong>${escapeHtml(formatTimeUntil(resetAt))}</strong>
               </div>
             </div>
-            <div class="battery-gauge" role="progressbar" aria-label="Остаток недельного лимита" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${remaining}">
-              <div class="battery-shell">
-                <div class="battery-fill ${cls}" style="width: ${remaining}%"></div>
-                <div class="battery-segments" aria-hidden="true">${segments}</div>
+            <div class="limit-battery-block">
+              <div class="battery-gauge" role="progressbar" aria-label="Остаток недельного лимита" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${remaining}">
+                <div class="battery-shell">
+                  <div class="battery-fill ${cls}" style="width: ${remaining}%"></div>
+                  <div class="battery-segments" aria-hidden="true">${segments}</div>
+                </div>
+                <div class="battery-cap" aria-hidden="true"></div>
               </div>
-              <div class="battery-cap" aria-hidden="true"></div>
+              ${tokenVolume}
             </div>
             <div class="limit-facts">
               <div class="limit-fact">
