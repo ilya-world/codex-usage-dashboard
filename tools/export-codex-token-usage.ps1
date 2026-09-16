@@ -28,6 +28,16 @@ function Test-ObjectMember($Value, [string]$Name) {
 }
 
 function Parse-DateTimeOffset($Value) {
+  if ($Value -is [datetimeoffset]) { return [datetimeoffset]$Value }
+
+  if ($Value -is [datetime]) {
+    $dateTime = [datetime]$Value
+    if ($dateTime.Kind -eq [System.DateTimeKind]::Unspecified) {
+      $dateTime = [datetime]::SpecifyKind($dateTime, [System.DateTimeKind]::Utc)
+    }
+    return [datetimeoffset]$dateTime
+  }
+
   if ([string]::IsNullOrWhiteSpace([string]$Value)) { return $null }
 
   try {
@@ -981,7 +991,7 @@ $tokenEventCount = 0
 $latestTokenEventAt = $null
 $tokenEvents = New-Object "System.Collections.Generic.List[object]"
 $rateLimitEvents = New-Object "System.Collections.Generic.List[object]"
-$cacheSchemaVersion = 1
+$cacheSchemaVersion = 2
 $cachedRecordsByPath = @{}
 $currentCacheRecords = New-Object "System.Collections.Generic.List[object]"
 $cacheHits = 0
